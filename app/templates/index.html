@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <title>Flack Chat Application</title>
+        <link rel="stylesheet" href="static/css/style.css">
+        <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+        $(document).ready(function(){
+          var stringDropDowninnerHTML = "<option value='--select--'>--Select--</option>";
+          // Retrieve the current set of chat_history
+          var chat_history = JSON.parse(localStorage.getItem("chat_history"));
+
+          // Retrieve the current set of usr and channel
+          var last_room = JSON.parse(localStorage.getItem("current_room"));
+          var last_user = last_room["user"];
+          var last_chanel = last_room["chanel"];
+
+          // automatically login the last user if he did not logout norma;;y
+          if( last_user != "void" && last_user){
+            $('#name').val(last_user);
+            $('#room').val(last_chanel);
+            setTimeout(function(){
+              $("#submit").click();
+            },1);
+          }
+
+          // function to fetch the localstorage and update the borard
+          function getFields(input, field) {
+              var output = [];
+              var output1 = [];
+              for (var i=0; i < input.length ; ++i)
+                  output.push(input[i][field]);
+              $.each(output, function(i, el){
+                if($.inArray(el, output1) === -1) output1.push(el);
+              });
+              return output1;
+          }
+          // return an array of room without dupicates
+          var result = getFields(chat_history, "room");
+
+          console.log(chat_history);
+          console.log(result);
+          //document.getElementById('myList').innerHTML = stringDropDowninnerHTML;
+        // Populate the lidt of rooms in the dropdown
+        var stringDropDowninnerHTML = "<option value='--select--'>--Select--</option>";
+          //length of the dropdown
+          var lengthOFDropDown = parseInt(result.length);
+          console.log(lengthOFDropDown);
+          for (var i = 0; i < lengthOFDropDown; i++) {
+              stringDropDowninnerHTML += "<option id=" + i + ">" + result[i] + "</option>";
+          }
+          console.log(stringDropDowninnerHTML);
+          document.getElementById('myList').innerHTML = stringDropDowninnerHTML;
+          // when you select a channel
+          $('#myList').change(function(){
+             var channel = $('#myList').val();
+             $('#room').val(channel);
+          });
+        });
+        </script>
+    </head>
+    <body>
+        <h1>Welcome to Flack Chat Application</h1>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            {{ form.name.label }}: {{ form.name() }} {% for error in form.name.errors %}{{ error }}{% endfor %}<br>
+            {{ form.room.label }}: {{ form.room() }} {% for error in form.room.errors %}{{ error }}{% endfor %}<br>
+            <div> Or choose an existing channel: <select id="myList"></select> </div>
+
+            {{ form.submit() }}
+        </form>
+    </body>
+</html>

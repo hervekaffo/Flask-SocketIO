@@ -1,0 +1,136 @@
+<html>
+    <head>
+        <title>Flack Chat Application: {{ room }}</title>
+        <link rel="stylesheet" href="static/css/style.css">
+        <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+            var socket;
+            $(document).ready(function(){
+
+              var chanel = '{{room}}';
+              var name = '{{name}}';
+              var current_room = {"user": name, "chanel": chanel};
+              var dateTime = new Date().toLocaleTimeString() + " " + new Date().toDateString()
+              localStorage.setItem("current_room", JSON.stringify(current_room));
+              //console.log(chanel);
+              //console.log(name);
+              var typing = document.getElementById('typing');
+              typing.style.visibility="hidden";
+              text.addEventListener('keydown', function(){
+                  typing.style.visibility="visible";
+              });
+
+              text.addEventListener('keyup', function(){
+                  typing.style.visibility="hidden";
+              });
+
+              // Make sure that an initial array of chat_history
+              // exists within localStorage
+              //localStorage.clear();
+              if (localStorage.getItem("chat_history") === null) {
+                var init_history = [
+                  { message: "Messages history", room: "room a" },
+                  { message: "Messages history1", room: "room b"  }
+                ];
+                localStorage.setItem("chat_history", JSON.stringify(init_history));
+              }
+
+              // Retrieve the current set of chat_history
+              var chat_history = JSON.parse(localStorage.getItem("chat_history"));
+              // function to fetch the localstorage and update the borard
+              function addAllResItems(chat_history) {
+                $.each(chat_history, function(index, resItem) {
+                  renderResItem(resItem);
+                });
+              }
+              // function to update the mesages in the borard
+              function renderResItem(resItem) {
+                var resItemHTML = '<' + resItem["message"] +' ';
+                if(resItem["room"] == chanel ){
+                  $('#chat').val($('#chat').val() + '<' + resItemHTML + '>\n');
+                  $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                }
+              }
+              // function to update the localstorage
+              function updateHistory(mes){
+                var resItem = { "message": mes, "room": chanel};
+                chat_history.push(resItem);
+                // Update the chat_history in localStorage
+                // using the new array of updated items
+                localStorage.setItem("chat_history", JSON.stringify(chat_history));
+              }
+              // update the texfield with localstorage data
+              addAllResItems(chat_history);
+
+              // connection on the socket
+                socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
+                socket.on('connect', function() {
+                    socket.emit('joined', {});
+                });
+                //when the use connect or leave
+                socket.on('status', function(data) {
+                    var msg_statut = data.msg+' '+ dateTime;
+                    $('#chat').val($('#chat').val() + '<' + msg_statut +'>\n');
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                    updateHistory(msg_statut);
+                    //var resItem = { "message": msg_statut };
+                    //chat_history.push(resItem);
+                    //localStorage.setItem("chat_history", JSON.stringify(chat_history));
+                });
+                //when the user send a message
+                socket.on('message', function(data) {
+                    var msg_typed = data.msg+' '+ dateTime;
+                    $('#chat').val($('#chat').val() + msg_typed + '\n');
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                    updateHistory(msg_typed);
+                });
+                //when the user press the key Enter to send the message
+                $('#text').keypress(function(e) {
+                    var code = e.keyCode || e.which;
+                    if (code == 13) {
+                      if (document.getElementById('text').value == ""){
+                         alert("please Enter something in Chat....");
+                         return
+                      }
+
+                        text = $('#text').val()+' ';
+                        $('#text').val('');
+                        socket.emit('text', {msg: text});
+                    }
+                });
+                //When the user click to send the message
+                var sendMessage = document.getElementById('sendMessage');
+                sendMessage.addEventListener('click', function () {
+                  if (document.getElementById('text').value == ""){
+                     alert("please Enter something in Chat....");
+                     return
+                  }
+                  text = $('#text').val()+' ';
+                  $('#text').val('');
+                  socket.emit('text', {msg: text});
+                });
+            });
+            //  When the user leave the channel
+            function leave_room() {
+                socket.emit('left', {}, function() {
+                    socket.disconnect();
+                    var leaving_room = {"user": "void", "chanel": "void"};;
+                    localStorage.setItem("current_room", JSON.stringify(leaving_room));
+                    // go back to the login page
+                    window.location.href = "{{ url_for('main.index') }}";
+                });
+            }
+        </script>
+    </head>
+    <body>
+      <div class = "contenu">
+        <h1>Flack Chat Application: {{ room }} {{ name }}</h1>
+        <textarea id="chat" cols="80" rows="20"></textarea><br>
+        <p id="typing" visibility = "hidden">Typing...</p><br>
+        <input id="text" size="80" placeholder="Enter your message here">
+        <button id="sendMessage" >Send</button><br><br>
+        <a href="#" onclick="leave_room();">Leave this Channel</a>
+      </div>
+    </body>
+</html>
