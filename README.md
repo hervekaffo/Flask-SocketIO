@@ -1,4 +1,4 @@
-Project 2 Flack Chat Application
+Description
 ===================
 
 This Application implements a mini chat. 
